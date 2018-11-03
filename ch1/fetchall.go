@@ -30,17 +30,31 @@ func main() {
 }
 
 func fetch(url string, ch chan<- string) {
+	var fullURL string
+
 	start := time.Now()
 
 	if !strings.HasPrefix(url, urlPrefix) {
-		url = urlPrefix + url
+		fullURL = urlPrefix + url
 	}
 
-	resp, err := http.Get(url)
+	resp, err := http.Get(fullURL)
 
 	if err != nil {
 		ch <- fmt.Sprint(err)
 		return
+	}
+
+	file, err := os.Create(url + ".html")
+
+	if err != nil {
+		fmt.Printf("Can't create file")
+	}
+
+	_, err = io.Copy(file, resp.Body)
+
+	if err != nil {
+		fmt.Printf("Can't write in file")
 	}
 
 	nbytes, err := io.Copy(ioutil.Discard, resp.Body)
