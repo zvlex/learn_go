@@ -1,36 +1,58 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/gif"
 	"io"
+	"log"
 	"math"
 	"math/rand"
-	"os"
+	"net/http"
+	"strconv"
 	"time"
 )
 
-var palette = []color.Color{color.White, color.Black}
+var palette = []color.Color{
+	color.RGBA{0x00, 0xcc, 0x44, 0xff},
+}
 
 const (
 	whiteIndex = 0
 	blackIndex = 1
+	res        = 0.001
+	size       = 100
+	nframes    = 64
+	delay      = 8
 )
 
 func main() {
-	lissajous(os.Stdout)
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		var cycles float64
+
+		if err := r.ParseForm(); err != nil {
+			log.Print(err)
+		}
+
+		for _, v := range r.Form["cycles"] {
+			attrValue, err := strconv.Atoi(v)
+
+			if err != nil {
+				fmt.Printf("Can not convert %s\n", err)
+			}
+
+			cycles = float64(attrValue)
+		}
+
+		lissajous(w, cycles)
+	}
+
+	http.HandleFunc("/", handler)
+	log.Fatal(http.ListenAndServe("localhost:8000", nil))
 }
 
-func lissajous(out io.Writer) {
-	const (
-		cycles  = 5
-		res     = 0.001
-		size    = 100
-		nframes = 64
-		delay   = 8
-	)
-
+func lissajous(out io.Writer, cycles float64) {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	freq := rand.Float64() * 3.0
